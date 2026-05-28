@@ -4,6 +4,10 @@ import { confirmPayment } from '@/app/actions/bill-actions';
 // Mock Supabase server client
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => ({
+    auth: {
+      getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+      signInAnonymously: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+    },
     from: vi.fn(() => ({
       update: vi.fn(() => ({
         eq: vi.fn(() => ({
@@ -42,6 +46,10 @@ describe('confirmPayment', () => {
     const { createClient } = await import('@/lib/supabase/server');
     const mockedCreateClient = createClient as unknown as ReturnType<typeof vi.fn>;
     mockedCreateClient.mockImplementationOnce(() => ({
+      auth: {
+        getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+        signInAnonymously: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+      },
       from: vi.fn(() => ({
         update: vi.fn(() => ({
           eq: vi.fn(() => ({

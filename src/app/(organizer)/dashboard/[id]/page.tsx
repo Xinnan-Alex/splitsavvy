@@ -33,7 +33,7 @@ export default async function BillDetailPage({
           <p className="text-muted-foreground">{bill.description}</p>
         </div>
         <div className="flex gap-2">
-          <Link href={`/create/success/${bill.short_id}`}>
+          <Link href={`/create/success/${bill.shortId}`}>
             <Button variant="outline">
               <Share2 className="h-4 w-4 mr-2" /> Share Link
             </Button>

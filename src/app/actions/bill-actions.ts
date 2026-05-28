@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { nanoid } from 'nanoid';
+import type { User } from '@supabase/supabase-js';
 import type {
   BillDetails,
   BillSummary,
@@ -11,6 +12,57 @@ import type {
   CreateBillResponse,
 } from '@/types';
 import { revalidatePath } from 'next/cache';
+
+function isStubEnv() {
+  return (
+    process.env.NEXT_PUBLIC_E2E_STUB === '1' ||
+    process.env.E2E_STUB === '1' ||
+    process.env.NEXT_PUBLIC_OCR_STUB === '1' ||
+    process.env.OCR_STUB === '1'
+  );
+}
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+async function ensureUser(supabase: SupabaseServerClient): Promise<{ user: User | null; error?: string }> {
+  const {
+    data: { user: existingUser },
+    error: getUserError,
+  } = await supabase.auth.getUser();
+
+  if (getUserError) {
+    if (getUserError.message.includes('Auth session missing')) {
+      if (isStubEnv()) return { user: null };
+      if ('signInAnonymously' in supabase.auth) {
+        const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously();
+        if (signInError) {
+          return { user: null, error: signInError.message };
+        }
+        return { user: signInData?.user ?? null };
+      }
+      return { user: null };
+    }
+    return { user: null, error: getUserError.message };
+  }
+
+  if (existingUser) {
+    return { user: existingUser };
+  }
+
+  if (isStubEnv()) {
+    return { user: null };
+  }
+
+  if ('signInAnonymously' in supabase.auth) {
+    const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously();
+    if (signInError) {
+      return { user: null, error: signInError.message };
+    }
+    return { user: signInData?.user ?? null };
+  }
+
+  return { user: null };
+}
 
 type ParticipantRow = {
   id: string;
@@ -38,12 +90,45 @@ type BillRow = {
 export async function createBill(data: CreateBillInput): Promise<CreateBillResponse> {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, error: userError } = await ensureUser(supabase);
+
+  if (userError) {
+    return { success: false, error: userError };
+  }
 
   if (!user) {
     return { success: false, error: 'Unauthorized' };
+  }
+
+  if (!isStubEnv()) {
+    const metadata = user.user_metadata;
+    const fullName =
+      typeof metadata === 'object' &&
+      metadata !== null &&
+      'full_name' in metadata &&
+      typeof (metadata as Record<string, unknown>).full_name === 'string'
+        ? String((metadata as Record<string, unknown>).full_name)
+        : null;
+
+    const { error: profileError } = await supabase.from('profiles').upsert(
+      {
+        id: user.id,
+        email: user.email ?? `${user.id}@anon.splitsavvy.local`,
+        full_name: fullName,
+      },
+      { onConflict: 'id' },
+    );
+
+    if (profileError) {
+      const isMissingProfilesTable =
+        profileError.code === 'PGRST205' ||
+        profileError.message.includes("Could not find the table 'public.profiles'");
+
+      if (!isMissingProfilesTable) {
+        console.error('Error ensuring profile:', profileError);
+        return { success: false, error: profileError.message };
+      }
+    }
   }
 
   const shortId = nanoid(10);
@@ -96,6 +181,10 @@ export async function createBill(data: CreateBillInput): Promise<CreateBillRespo
 
 export async function deleteBill(billId: string): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient();
+
+  const { user, error: userError } = await ensureUser(supabase);
+  if (userError) return { success: false, error: userError };
+  if (!user) return { success: false, error: 'Unauthorized' };
 
   const { error } = await supabase.from('bills').delete().eq('id', billId);
 
@@ -172,6 +261,9 @@ export async function getBillDetails(idOrShortId: string) {
 export async function confirmPayment(data: ConfirmPaymentInput): Promise<ConfirmPaymentResponse> {
   const supabase = await createClient();
 
+  const { error: userError } = await ensureUser(supabase);
+  if (userError) return { success: false, error: userError };
+
   const { data: participant, error } = await supabase
     .from('participants')
     .update({
@@ -199,9 +291,7 @@ export async function confirmPayment(data: ConfirmPaymentInput): Promise<Confirm
 export async function getOrganizerBills(): Promise<BillSummary[]> {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await ensureUser(supabase);
 
   if (!user) {
     return [];

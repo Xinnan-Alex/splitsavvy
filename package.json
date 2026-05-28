@@ -5,10 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p ${PORT:-3000}",
     "lint": "eslint",
     "test": "vitest",
     "test:e2e": "playwright test",
+    "supabase:start": "SUPABASE_TELEMETRY_DISABLED=1 supabase start --exclude vector",
+    "supabase:stop": "SUPABASE_TELEMETRY_DISABLED=1 supabase stop",
     "format": "prettier --write ."
   },
   "dependencies": {

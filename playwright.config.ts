@@ -6,7 +6,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: [['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:3100',
     trace: 'on-first-retry',
@@ -22,7 +22,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'NEXT_PUBLIC_OCR_STUB=1 npm run dev -- --port 3100',
+    command:
+      'E2E_STUB=1 OCR_STUB=1 NEXT_PUBLIC_OCR_STUB=1 NEXT_PUBLIC_E2E_STUB=1 npm run dev -- --port 3100',
     url: 'http://localhost:3100',
     reuseExistingServer: false,
   },

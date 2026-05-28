@@ -15,7 +15,7 @@ export default async function PublicBillPage({
   }
 
   return (
-    <div className="container max-w-md py-8">
+    <div className="container mx-auto max-w-md px-4 py-8">
       <ParticipantBillView bill={bill} />
     </div>
   );

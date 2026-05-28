@@ -16,6 +16,6 @@ test.describe('Organizer Dashboard', () => {
     // Check bill details page
     await expect(page.locator('h1')).toBeVisible();
     await expect(page.locator('text=Total to Collect')).toBeVisible();
-    await expect(page.locator('text=Participants')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Participants' })).toBeVisible();
   });
 });

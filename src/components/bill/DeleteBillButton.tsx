@@ -21,7 +21,7 @@ export function DeleteBillButton({ billId }: { billId: string }) {
       } else {
         alert(res.error || 'Failed to delete bill');
       }
-    } catch (error) {
+    } catch {
       alert('An error occurred');
     } finally {
       setLoading(false);

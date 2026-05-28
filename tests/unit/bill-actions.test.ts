@@ -5,15 +5,40 @@ import { createBill } from '@/app/actions/bill-actions';
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => ({
     auth: {
-      getUser: vi.fn(() => Promise.resolve({ data: { user: { id: 'test-user-id' } }, error: null })),
+      getUser: vi.fn(() =>
+        Promise.resolve({
+          data: { user: { id: 'test-user-id', email: 'test@example.com', user_metadata: {} } },
+          error: null,
+        }),
+      ),
+      signInAnonymously: vi.fn(() =>
+        Promise.resolve({
+          data: { user: { id: 'test-user-id', email: 'test@example.com', user_metadata: {} } },
+          error: null,
+        }),
+      ),
     },
-    from: vi.fn(() => ({
-      insert: vi.fn(() => ({
-        select: vi.fn(() => ({
-          single: vi.fn(() => Promise.resolve({ data: { id: 'bill-id', short_id: 'short-id' }, error: null })),
+    from: vi.fn((table: string) => {
+      if (table === 'profiles') {
+        return {
+          upsert: vi.fn(() => Promise.resolve({ error: null })),
+        };
+      }
+      if (table === 'participants') {
+        return {
+          insert: vi.fn(() => Promise.resolve({ error: null })),
+        };
+      }
+      return {
+        insert: vi.fn(() => ({
+          select: vi.fn(() => ({
+            single: vi.fn(() =>
+              Promise.resolve({ data: { id: 'bill-id', short_id: 'short-id' }, error: null }),
+            ),
+          })),
         })),
-      })),
-    })),
+      };
+    }),
   })),
 }));
 
@@ -57,6 +82,7 @@ describe('createBill', () => {
     mockedCreateClient.mockImplementationOnce(() => ({
       auth: {
         getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+        signInAnonymously: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
       },
     }));
 

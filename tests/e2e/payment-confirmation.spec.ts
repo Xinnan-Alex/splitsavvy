@@ -10,12 +10,17 @@ test.describe('Participant Payment Confirmation', () => {
     // Check bill details
     await expect(page.locator('h1')).toBeVisible();
     
+    const paidBadges = page.getByText('Paid', { exact: true });
+    const confirmButtons = page.getByRole('button', { name: 'Confirm Payment' });
+
+    const initialPaidCount = await paidBadges.count();
+    const initialConfirmCount = await confirmButtons.count();
+
     // Find an unpaid participant and click confirm
-    const confirmButton = page.locator('button:has-text("Confirm Payment")').first();
-    await confirmButton.click();
+    await confirmButtons.first().click();
 
     // Button should show loading state then disappear/show Paid
-    await expect(page.locator('text=Paid').first()).toBeVisible();
-    await expect(confirmButton).not.toBeVisible();
+    await expect(confirmButtons).toHaveCount(Math.max(0, initialConfirmCount - 1));
+    await expect(paidBadges).toHaveCount(initialPaidCount + 1);
   });
 });

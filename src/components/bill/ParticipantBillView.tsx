@@ -11,6 +11,9 @@ import { formatCurrency } from '@/lib/utils';
 
 export function ParticipantBillView({ bill }: { bill: BillDetails }) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [locallyPaidIds, setLocallyPaidIds] = useState<string[]>([]);
+
+  const isLocallyPaid = (participantId: string) => locallyPaidIds.includes(participantId);
 
   const handleConfirm = async (participantId: string) => {
     setLoadingId(participantId);
@@ -21,15 +24,27 @@ export function ParticipantBillView({ bill }: { bill: BillDetails }) {
       });
       if (!res.success) {
         alert(res.error || 'Failed to confirm payment');
+      } else {
+        setLocallyPaidIds((prev) => (prev.includes(participantId) ? prev : [...prev, participantId]));
       }
-    } catch (error) {
+    } catch {
       alert('An error occurred');
     } finally {
       setLoadingId(null);
     }
   };
 
-  const progress = (bill.paidAmount / bill.totalAmount) * 100;
+  const paidAmount = bill.participants.reduce((sum, p) => {
+    const paid = p.status === 'paid' || isLocallyPaid(p.id);
+    return paid ? sum + p.shareAmount : sum;
+  }, 0);
+
+  const paidCount = bill.participants.reduce((sum, p) => {
+    const paid = p.status === 'paid' || isLocallyPaid(p.id);
+    return paid ? sum + 1 : sum;
+  }, 0);
+
+  const progress = (paidAmount / bill.totalAmount) * 100;
 
   return (
     <div className="space-y-6">
@@ -46,11 +61,11 @@ export function ParticipantBillView({ bill }: { bill: BillDetails }) {
         <CardContent className="space-y-2">
           <div className="flex justify-between text-sm font-medium">
             <span>Progress</span>
-            <span>{formatCurrency(bill.paidAmount, bill.currency)} collected</span>
+            <span>{formatCurrency(paidAmount, bill.currency)} collected</span>
           </div>
           <Progress value={progress} className="h-2" />
           <p className="text-xs text-center text-muted-foreground">
-            {bill.paidCount} of {bill.participantCount} participants paid
+            {paidCount} of {bill.participantCount} participants paid
           </p>
         </CardContent>
       </Card>
@@ -58,11 +73,13 @@ export function ParticipantBillView({ bill }: { bill: BillDetails }) {
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Participants</h2>
         <div className="grid gap-4">
-          {bill.participants.map((p) => (
-            <Card key={p.id} className={p.status === 'paid' ? 'bg-primary/5 border-primary/20' : ''}>
+          {bill.participants.map((p) => {
+            const paid = p.status === 'paid' || isLocallyPaid(p.id);
+            return (
+              <Card key={p.id} className={paid ? 'bg-primary/5 border-primary/20' : ''}>
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {p.status === 'paid' ? (
+                  {paid ? (
                     <CheckCircle2 className="h-6 w-6 text-primary" />
                   ) : (
                     <Circle className="h-6 w-6 text-muted-foreground" />
@@ -74,7 +91,7 @@ export function ParticipantBillView({ bill }: { bill: BillDetails }) {
                     </p>
                   </div>
                 </div>
-                {p.status === 'unpaid' && (
+                {!paid && (
                   <Button
                     size="sm"
                     onClick={() => handleConfirm(p.id)}
@@ -87,12 +104,13 @@ export function ParticipantBillView({ bill }: { bill: BillDetails }) {
                     )}
                   </Button>
                 )}
-                {p.status === 'paid' && (
+                {paid && (
                   <span className="text-sm font-medium text-primary">Paid</span>
                 )}
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
