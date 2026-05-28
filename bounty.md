@@ -52,23 +52,3 @@ Design-wise, builders are encouraged to create a unique theme/brand/concept (fin
 9. Short Project Description
 10. Optional Bonus Features
 11. Minimum Acceptance Criteria
-
-## Tags
-- YouChoose
-
-## Links
-- No links available.
-
-## Notes
-- Login required.
-- Submissions: 7
-
-### Submissions (profiles)
-1. https://krackeddevs.com/profile/irfanrff (@irfanrff)
-2. https://krackeddevs.com/profile/irfan (@irfan)
-3. https://krackeddevs.com/profile/cloud8877-source (@cloud8877-source)
-4. https://krackeddevs.com/profile/KAGEROU1107 (@KAGEROU1107)
-5. https://krackeddevs.com/profile/syn (@syn)
-6. https://krackeddevs.com/profile/khairulimran-97 (@khairulimran-97)
-7. https://krackeddevs.com/profile/zahar (@zahar)
-
