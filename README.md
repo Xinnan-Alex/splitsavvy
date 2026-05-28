@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SplitSavvy
+
+SplitSavvy is a web app for creating a bill, splitting it across participants, and tracking who has paid.
+
+**Key flows**
+- Create a bill (with optional receipt scan autofill): `/create`
+- Organizer dashboard: `/dashboard`
+- Participant bill view: `/bill/[shortId]`
+
+## Tech Stack
+
+- Next.js, React, TypeScript
+- Supabase (Auth + Postgres)
+- Tailwind + shadcn/ui components
+- Receipt OCR: `tesseract.js` (runs in the browser; receipt photos are not persisted)
 
 ## Getting Started
 
-First, run the development server:
+### 1) Install dependencies
+
+```bash
+npm install
+```
+
+### 2) Configure environment variables
+
+Create a `.env.local` file (gitignored) with:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
+```
+
+Optional dev/testing flags:
+
+```env
+# Uses in-memory stores instead of Supabase (used by Playwright config)
+E2E_STUB=1
+NEXT_PUBLIC_E2E_STUB=1
+
+# Uses a deterministic OCR stub instead of running Tesseract
+OCR_STUB=1
+NEXT_PUBLIC_OCR_STUB=1
+```
+
+### 3) (Optional) Run Supabase locally
+
+If you have the Supabase CLI installed, you can run a local Supabase stack:
+
+```bash
+npm run supabase:start
+supabase db reset
+```
+
+Use the Supabase CLI output values for `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+
+### 4) Run the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Testing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Unit tests:
 
-## Learn More
+```bash
+npm test
+```
 
-To learn more about Next.js, take a look at the following resources:
+- E2E tests (starts a dev server on port 3100 with stubs enabled):
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run test:e2e
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Receipt Scan (OCR)
 
-## Deploy on Vercel
+- Entry point: bill creation page (`/create`)
+- Output: suggests a Title and Total Amount; the form remains fully editable
+- Privacy: receipt images are not retained as part of a bill
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+To force OCR stub mode locally:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+NEXT_PUBLIC_OCR_STUB=1 npm run dev
+```
