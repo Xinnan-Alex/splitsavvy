@@ -20,7 +20,7 @@ export default async function BillDetailPage({
   }
 
   return (
-    <div className="container py-8 space-y-8">
+    <div className="container mx-auto px-4 py-8 space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
           <Link
