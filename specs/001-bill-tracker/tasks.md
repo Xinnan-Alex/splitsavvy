@@ -4,24 +4,23 @@
 
 **Prerequisites**: [plan.md](file:///Users/alexleong/repos/splitsavvy/specs/001-bill-tracker/plan.md), [spec.md](file:///Users/alexleong/repos/splitsavvy/specs/001-bill-tracker/spec.md), [research.md](file:///Users/alexleong/repos/splitsavvy/specs/001-bill-tracker/research.md), [data-model.md](file:///Users/alexleong/repos/splitsavvy/specs/001-bill-tracker/data-model.md), [actions.md](file:///Users/alexleong/repos/splitsavvy/specs/001-bill-tracker/contracts/actions.md)
 
-**Tests**: Vitest for unit/integration tests and Playwright for E2E tests are included as per the implementation plan.
+**Tests**: Include Vitest + Playwright tasks because testing is part of the technical plan and user scenarios are explicitly defined in spec.md.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
+- **[Story]**: Which user story this task belongs to (e.g., [US1], [US2], [US3])
 - Include exact file paths in descriptions
 
 ## Phase 1: Setup (Shared Infrastructure)
 
 **Purpose**: Project initialization and basic structure
 
-- [X] T001 Initialize Next.js project with Tailwind CSS and TypeScript
-- [X] T002 [P] Install core dependencies: `@supabase/supabase-js`, `@supabase/ssr`, `lucide-react`, `nanoid`, `shadcn/ui` components
-- [X] T003 [P] Configure Vitest and Playwright testing frameworks
-- [X] T004 [P] Setup linting and formatting (ESLint, Prettier)
+- [ ] T001 Validate Next.js + TypeScript + Tailwind baseline setup in package.json and src/app/ directory
+- [ ] T002 [P] Validate linting + formatting configuration (ESLint/Prettier) via package.json scripts
+- [ ] T003 [P] Validate Vitest + Playwright configuration via tests/setup.ts and playwright config (if present)
 
 ---
 
@@ -29,11 +28,15 @@
 
 **Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
 
-- [X] T005 Create Supabase client utilities in `src/lib/supabase/client.ts` and `src/lib/supabase/server.ts`
-- [X] T006 [P] Define TypeScript interfaces in `src/types/index.ts` based on `data-model.md` and `actions.md`
-- [X] T007 [P] Implement shared UI components: Button, Input, Card, Progress in `src/components/ui/`
-- [X] T008 Setup middleware for session management in `src/middleware.ts`
-- [X] T009 Create utility functions (e.g., currency formatting) in `src/lib/utils.ts`
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete
+
+- [ ] T004 Apply schema + RLS policies in specs/001-bill-tracker/data-model.md to Supabase project (tables: profiles, bills, participants)
+- [ ] T005 [P] Confirm env var expectations from specs/001-bill-tracker/quickstart.md and .gitignore handling for .env.local
+- [ ] T006 Implement Supabase client helpers in src/lib/supabase/client.ts and src/lib/supabase/server.ts
+- [ ] T007 [P] Define shared TypeScript types aligned to data-model.md + actions.md in src/types/index.ts
+- [ ] T008 [P] Ensure shared UI primitives exist and match usage (button/card/input/progress) in src/components/ui/
+- [ ] T009 Ensure session/middleware behavior for organizer routes in src/middleware.ts
+- [ ] T010 [P] Ensure formatting helpers (currency, dates, classnames) exist in src/lib/utils.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -43,19 +46,22 @@
 
 **Goal**: Organizer can create a bill with participants and get a shareable link.
 
-**Independent Test**: Organizer completes the creation form and is redirected to a success page with a copyable short link.
+**Independent Test**: Organizer completes the creation form and receives a unique shareable URL they can copy.
+
+### Tests for User Story 1
+
+- [ ] T011 [P] [US1] Add/adjust unit test coverage for createBill in tests/unit/bill-actions.test.ts
+- [ ] T012 [P] [US1] Add/adjust E2E test for organizer bill creation journey in tests/e2e/bill-creation.spec.ts
 
 ### Implementation for User Story 1
 
-- [X] T010 [P] [US1] Create database migration for `bills` and `participants` tables in Supabase
-- [X] T011 [US1] Implement `createBill` server action in `src/app/actions/bill-actions.ts`
-- [X] T012 [P] [US1] Create Bill Creation form component in `src/components/bill/BillCreateForm.tsx`
-- [X] T013 [US1] Implement Bill Creation page in `src/app/(organizer)/create/page.tsx`
-- [X] T014 [US1] Create Success/Share page in `src/app/(organizer)/create/success/[id]/page.tsx`
-- [X] T015 [US1] Add unit tests for `createBill` action in `tests/unit/bill-actions.test.ts`
-- [X] T016 [US1] Add E2E test for bill creation flow in `tests/e2e/bill-creation.spec.ts`
+- [ ] T013 [US1] Implement createBill server action contract in src/app/actions/bill-actions.ts (CreateBillInput/CreateBillResponse)
+- [ ] T014 [P] [US1] Implement bill creation form UI in src/components/bill/BillCreateForm.tsx
+- [ ] T015 [US1] Wire organizer create page to BillCreateForm in src/app/(organizer)/create/page.tsx
+- [ ] T016 [US1] Implement success/share page (short link + copy UX) in src/app/(organizer)/create/success/[id]/page.tsx
+- [ ] T017 [US1] Ensure home entry point routes correctly to creation flow in src/app/page.tsx
 
-**Checkpoint**: User Story 1 functional - Organizers can create and share bills.
+**Checkpoint**: US1 functional and independently verifiable from the UI
 
 ---
 
@@ -63,37 +69,43 @@
 
 **Goal**: Participants can view bill details and mark their payment as done.
 
-**Independent Test**: Participant opens short link, selects their name, clicks "Confirm Payment", and sees status update to "Paid".
+**Independent Test**: A user opening the bill link can see participants and click Confirm Payment for their name.
+
+### Tests for User Story 2
+
+- [ ] T018 [P] [US2] Add/adjust unit test coverage for confirmPayment in tests/unit/payment-actions.test.ts
+- [ ] T019 [P] [US2] Add/adjust E2E test for participant payment confirmation in tests/e2e/payment-confirmation.spec.ts
 
 ### Implementation for User Story 2
 
-- [X] T017 [US1] Implement `getBillDetails` query in `src/app/actions/bill-actions.ts`
-- [X] T018 [US2] Implement `confirmPayment` server action in `src/app/actions/bill-actions.ts`
-- [X] T019 [US2] Create Participant Bill View component in `src/components/bill/ParticipantBillView.tsx`
-- [X] T020 [US2] Implement Public Bill page in `src/app/bill/[shortId]/page.tsx`
-- [X] T021 [US2] Add unit tests for `confirmPayment` action in `tests/unit/payment-actions.test.ts`
-- [X] T022 [US2] Add E2E test for participant payment flow in `tests/e2e/payment-confirmation.spec.ts`
+- [ ] T020 [US2] Implement getBillDetails query contract in src/app/actions/bill-actions.ts (public by shortId and/or authenticated by id)
+- [ ] T021 [US2] Implement confirmPayment server action contract in src/app/actions/bill-actions.ts (ConfirmPaymentInput/ConfirmPaymentResponse)
+- [ ] T022 [P] [US2] Implement participant bill view UI in src/components/bill/ParticipantBillView.tsx
+- [ ] T023 [US2] Implement public bill route in src/app/bill/[shortId]/page.tsx (renders ParticipantBillView)
 
-**Checkpoint**: User Story 2 functional - Participants can view and confirm payments.
+**Checkpoint**: US2 functional and independently verifiable from a shared link
 
 ---
 
 ## Phase 5: User Story 3 - Organizer Tracking Dashboard (Priority: P1)
 
-**Goal**: Organizer can track overall progress and individual payment statuses.
+**Goal**: Organizer can see who has paid and who hasn't (with totals and progress).
 
-**Independent Test**: Dashboard displays a progress bar showing % collected and a list of all participants with their paid/unpaid status.
+**Independent Test**: Dashboard shows progress + paid/unpaid breakdown and updates when participants confirm payments.
+
+### Tests for User Story 3
+
+- [ ] T024 [P] [US3] Add/adjust E2E coverage for organizer dashboard tracking in tests/e2e/organizer-dashboard.spec.ts
 
 ### Implementation for User Story 3
 
-- [X] T023 [US3] Implement `getOrganizerBills` query in `src/app/actions/bill-actions.ts`
-- [X] T024 [P] [US3] Create Dashboard Summary component (stats cards) in `src/components/bill/DashboardSummary.tsx`
-- [X] T025 [P] [US3] Create Participant Status List component in `src/components/bill/ParticipantStatusList.tsx`
-- [X] T026 [US3] Implement Organizer Dashboard page in `src/app/(organizer)/dashboard/page.tsx`
-- [X] T027 [US3] Implement Bill Detail Dashboard page in `src/app/(organizer)/dashboard/[id]/page.tsx`
-- [X] T028 [US3] Add E2E test for organizer dashboard tracking in `tests/e2e/organizer-dashboard.spec.ts`
+- [ ] T025 [US3] Implement getOrganizerBills query contract in src/app/actions/bill-actions.ts (BillSummary[])
+- [ ] T026 [P] [US3] Implement dashboard summary UI in src/components/bill/DashboardSummary.tsx
+- [ ] T027 [P] [US3] Implement participant status list UI in src/components/bill/ParticipantStatusList.tsx
+- [ ] T028 [US3] Implement organizer dashboard list page in src/app/(organizer)/dashboard/page.tsx
+- [ ] T029 [US3] Implement organizer bill detail dashboard page in src/app/(organizer)/dashboard/[id]/page.tsx
 
-**Checkpoint**: User Story 3 functional - Organizers can track collections.
+**Checkpoint**: US3 functional and independently verifiable after organizer auth
 
 ---
 
@@ -101,11 +113,11 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [X] T029 Implement responsive layout optimizations for mobile/WhatsApp view
-- [X] T030 Add "Fintech" visual theme (dark mode support, animations) using Tailwind and Framer Motion
-- [X] T031 [P] Implement `deleteBill` server action and UI in `src/app/actions/bill-actions.ts`
-- [X] T032 Final security audit of Supabase RLS policies
-- [X] T033 Run and pass all tests (Vitest & Playwright)
+- [ ] T030 [P] Implement deleteBill server action contract in src/app/actions/bill-actions.ts and wire UI in src/components/bill/DeleteBillButton.tsx
+- [ ] T031 Ensure mobile-first layout polish for key pages (create/dashboard/bill) in src/app/(organizer)/create/page.tsx, src/app/(organizer)/dashboard/page.tsx, src/app/bill/[shortId]/page.tsx
+- [ ] T032 Update global typography to JetBrains (prefer Nerd Font name, fallback to JetBrains Mono) in src/app/layout.tsx and src/app/globals.css
+- [ ] T033 Validate Supabase RLS matches data-model.md constraints (organizer-only writes, public read by short_id, public confirmPayment scope)
+- [ ] T034 Run quickstart validation steps from specs/001-bill-tracker/quickstart.md (dev server + vitest + playwright)
 
 ---
 
@@ -113,32 +125,28 @@
 
 ### Phase Dependencies
 
-- **Setup (Phase 1)**: Must be completed first.
-- **Foundational (Phase 2)**: Depends on Phase 1. Blocks all User Stories.
-- **User Stories (Phases 3-5)**: Depend on Phase 2. Can proceed in parallel but recommended sequence is US1 → US2 → US3.
-- **Polish (Phase 6)**: Final phase.
+- **Setup (Phase 1)**: No dependencies - can start immediately
+- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
+- **User Stories (Phase 3+)**: All depend on Foundational phase completion
+- **Polish (Final Phase)**: Depends on desired user stories being complete
+
+### User Story Dependencies
+
+- **[US1]**: Can start after Foundational (Phase 2)
+- **[US2]**: Can start after Foundational (Phase 2), depends conceptually on bill existence but should be independently testable via a created bill
+- **[US3]**: Can start after Foundational (Phase 2), depends on organizer having created at least one bill
 
 ### Parallel Opportunities
 
-- T002, T003, T004 (Setup phase)
-- T006, T007 (Foundational phase)
-- T010, T012 (User Story 1)
-- T024, T025 (User Story 3)
-- Once Phase 2 is complete, US1 and US2 can theoretically start in parallel if independent paths are followed.
+- Phase 1 tasks with [P] can be done in parallel (T002-T003)
+- Phase 2 tasks with [P] can be done in parallel (T005, T007, T008, T010)
+- Within US1: tests (T011-T012) can be written in parallel with UI work (T014) once action contract is settled
+- Within US3: dashboard components (T026-T027) can be done in parallel
 
 ---
 
-## Implementation Strategy
+## Parallel Example: User Story 1
 
-### MVP First (User Story 1 Only)
-
-1. Complete Setup & Foundation.
-2. Implement Bill Creation (US1).
-3. Verify that a bill can be created and a link generated.
-
-### Incremental Delivery
-
-1. Deliver US1 (Creation).
-2. Deliver US2 (Payment Confirmation).
-3. Deliver US3 (Dashboard Tracking).
-4. Final Polish & Theme.
+- [ ] T011 [P] [US1] Add/adjust unit test coverage for createBill in tests/unit/bill-actions.test.ts
+- [ ] T012 [P] [US1] Add/adjust E2E test for organizer bill creation journey in tests/e2e/bill-creation.spec.ts
+- [ ] T014 [P] [US1] Implement bill creation form UI in src/components/bill/BillCreateForm.tsx

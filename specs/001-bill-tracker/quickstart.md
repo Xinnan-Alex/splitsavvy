@@ -23,8 +23,8 @@ npm install -D vitest @testing-library/react @vitejs/plugin-react jsdom playwrig
 Create a `.env.local` file with your Supabase credentials:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+SUPABASE_SECRET_KEY=your_supabase_secret_key
 ```
 
 ## 4. Supabase Schema Setup

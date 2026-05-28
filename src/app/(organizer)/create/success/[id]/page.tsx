@@ -23,7 +23,7 @@ export default function BillSuccessPage({ params }: { params: Promise<{ id: stri
   };
 
   return (
-    <div className="container max-w-md py-12 space-y-8 text-center">
+    <div className="container mx-auto max-w-md px-4 py-12 space-y-8 text-center">
       <div className="space-y-2">
         <div className="mx-auto w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
           <Check className="h-8 w-8" />
