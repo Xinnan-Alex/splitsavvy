@@ -2,8 +2,38 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { nanoid } from 'nanoid';
-import { CreateBillInput, CreateBillResponse } from '@/types';
+import type {
+  BillDetails,
+  BillSummary,
+  ConfirmPaymentInput,
+  ConfirmPaymentResponse,
+  CreateBillInput,
+  CreateBillResponse,
+} from '@/types';
 import { revalidatePath } from 'next/cache';
+
+type ParticipantRow = {
+  id: string;
+  bill_id: string;
+  name: string;
+  share_amount: number | string;
+  status: 'unpaid' | 'paid';
+  paid_at: string | null;
+  created_at: string;
+};
+
+type BillRow = {
+  id: string;
+  short_id: string;
+  organizer_id: string;
+  title: string;
+  total_amount: number | string;
+  description: string | null;
+  due_date: string;
+  currency: string;
+  created_at: string;
+  participants: ParticipantRow[];
+};
 
 export async function createBill(data: CreateBillInput): Promise<CreateBillResponse> {
   const supabase = await createClient();
@@ -94,37 +124,52 @@ export async function getBillDetails(idOrShortId: string) {
     query = query.eq('id', idOrShortId);
   }
 
-  const { data: bill, error } = await query.single();
+  const { data: billData, error } = await query.single();
 
-  if (error || !bill) {
+  if (error || !billData) {
     console.error('Error fetching bill details:', error);
     return null;
   }
 
-  const paidAmount = bill.participants
-    .filter((p: any) => p.status === 'paid')
-    .reduce((sum: number, p: any) => sum + parseFloat(p.share_amount), 0);
+  const bill = billData as unknown as BillRow;
+  const participants = bill.participants ?? [];
+  const paidAmount = participants
+    .filter((p) => p.status === 'paid')
+    .reduce((sum, p) => sum + Number(p.share_amount), 0);
 
-  const paidCount = bill.participants.filter((p: any) => p.status === 'paid').length;
+  const paidCount = participants.filter((p) => p.status === 'paid').length;
+  const participantCount = participants.length;
+  const totalAmount = Number(bill.total_amount);
+  const dueDate = bill.due_date;
+  const isOverdue = new Date(dueDate) < new Date() && paidCount !== participantCount;
+  const status: BillSummary['status'] =
+    paidCount === participantCount ? 'completed' : isOverdue ? 'overdue' : 'pending';
 
-  return {
-    ...bill,
-    totalAmount: parseFloat(bill.total_amount),
+  const details: BillDetails = {
+    id: bill.id,
+    shortId: bill.short_id,
+    title: bill.title,
+    totalAmount,
     paidAmount,
-    participantCount: bill.participants.length,
+    participantCount,
     paidCount,
-    status: paidCount === bill.participants.length ? 'completed' : 'pending',
-    participants: bill.participants.map((p: any) => ({
-      ...p,
-      shareAmount: parseFloat(p.share_amount),
+    dueDate,
+    currency: bill.currency,
+    status,
+    description: bill.description ?? undefined,
+    participants: participants.map((p) => ({
+      id: p.id,
+      name: p.name,
+      shareAmount: Number(p.share_amount),
+      status: p.status,
+      paidAt: p.paid_at ?? undefined,
     })),
   };
+
+  return details;
 }
 
-export async function confirmPayment(data: {
-  participantId: string;
-  billShortId: string;
-}) {
+export async function confirmPayment(data: ConfirmPaymentInput): Promise<ConfirmPaymentResponse> {
   const supabase = await createClient();
 
   const { data: participant, error } = await supabase
@@ -151,7 +196,7 @@ export async function confirmPayment(data: {
   };
 }
 
-export async function getOrganizerBills() {
+export async function getOrganizerBills(): Promise<BillSummary[]> {
   const supabase = await createClient();
 
   const {
@@ -176,20 +221,33 @@ export async function getOrganizerBills() {
     return [];
   }
 
-  return bills.map((bill: any) => {
-    const paidAmount = bill.participants
-      .filter((p: any) => p.status === 'paid')
-      .reduce((sum: number, p: any) => sum + parseFloat(p.share_amount), 0);
+  const rows = (bills ?? []) as unknown as BillRow[];
 
-    const paidCount = bill.participants.filter((p: any) => p.status === 'paid').length;
+  return rows.map((bill) => {
+    const participants = bill.participants ?? [];
+    const paidAmount = participants
+      .filter((p) => p.status === 'paid')
+      .reduce((sum, p) => sum + Number(p.share_amount), 0);
+
+    const paidCount = participants.filter((p) => p.status === 'paid').length;
+    const participantCount = participants.length;
+    const totalAmount = Number(bill.total_amount);
+    const dueDate = bill.due_date;
+    const isOverdue = new Date(dueDate) < new Date() && paidCount !== participantCount;
+    const status: BillSummary['status'] =
+      paidCount === participantCount ? 'completed' : isOverdue ? 'overdue' : 'pending';
 
     return {
-      ...bill,
-      totalAmount: parseFloat(bill.total_amount),
+      id: bill.id,
+      shortId: bill.short_id,
+      title: bill.title,
+      totalAmount,
       paidAmount,
-      participantCount: bill.participants.length,
+      participantCount,
       paidCount,
-      status: paidCount === bill.participants.length ? 'completed' : 'pending',
+      dueDate,
+      currency: bill.currency,
+      status,
     };
   });
 }

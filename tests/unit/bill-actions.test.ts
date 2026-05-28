@@ -53,7 +53,8 @@ describe('createBill', () => {
 
   it('should return error if unauthorized', async () => {
     const { createClient } = await import('@/lib/supabase/server');
-    (createClient as any).mockImplementationOnce(() => ({
+    const mockedCreateClient = createClient as unknown as ReturnType<typeof vi.fn>;
+    mockedCreateClient.mockImplementationOnce(() => ({
       auth: {
         getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
       },

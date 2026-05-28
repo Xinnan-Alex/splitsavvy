@@ -40,7 +40,8 @@ describe('confirmPayment', () => {
 
   it('should return error if update fails', async () => {
     const { createClient } = await import('@/lib/supabase/server');
-    (createClient as any).mockImplementationOnce(() => ({
+    const mockedCreateClient = createClient as unknown as ReturnType<typeof vi.fn>;
+    mockedCreateClient.mockImplementationOnce(() => ({
       from: vi.fn(() => ({
         update: vi.fn(() => ({
           eq: vi.fn(() => ({

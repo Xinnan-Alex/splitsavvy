@@ -66,6 +66,7 @@ export interface BillSummary {
   participantCount: number;
   paidCount: number;
   dueDate: string;
+  currency: string;
   status: 'pending' | 'completed' | 'overdue';
 }
 

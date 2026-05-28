@@ -26,7 +26,7 @@ export default async function DashboardPage() {
       {bills.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent className="space-y-4">
-            <p className="text-muted-foreground">You haven't created any bills yet.</p>
+            <p className="text-muted-foreground">You haven&apos;t created any bills yet.</p>
             <Link href="/create">
               <Button variant="outline">Create your first bill</Button>
             </Link>
@@ -42,7 +42,7 @@ export default async function DashboardPage() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-xl">{bill.title}</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Due on {new Date(bill.due_date).toLocaleDateString()}
+                      Due on {new Date(bill.dueDate).toLocaleDateString()}
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-4">

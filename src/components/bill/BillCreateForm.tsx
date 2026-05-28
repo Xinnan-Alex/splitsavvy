@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBill } from '@/app/actions/bill-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { applyScanToDraft } from '@/lib/receipt-scan/applyScanToDraft';
+import { scanReceiptImage } from '@/lib/receipt-scan/ocr';
+import type { ReceiptScanStatus } from '@/lib/receipt-scan/types';
+import { Plus, Trash2, Loader2, Camera, RotateCcw, XCircle } from 'lucide-react';
 
 export function BillCreateForm() {
   const router = useRouter();
@@ -15,6 +18,13 @@ export function BillCreateForm() {
   const [totalAmount, setTotalAmount] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [participants, setParticipants] = useState([{ name: '', shareAmount: '' }]);
+  const [scanStatus, setScanStatus] = useState<ReceiptScanStatus>('idle');
+  const [scanError, setScanError] = useState('');
+  const [scanNotes, setScanNotes] = useState<string[]>([]);
+  const [appliedFields, setAppliedFields] = useState<Array<'title' | 'totalAmount'>>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const scanModeRef = useRef<'scan' | 'retake'>('scan');
+  const scanDisabled = scanStatus === 'recognizing' || scanStatus === 'capturing';
 
   const addParticipant = () => {
     setParticipants([...participants, { name: '', shareAmount: '' }]);
@@ -28,6 +38,99 @@ export function BillCreateForm() {
     const newParticipants = [...participants];
     newParticipants[index][field] = value;
     setParticipants(newParticipants);
+  };
+
+  const resetScanMeta = () => {
+    setScanStatus('idle');
+    setScanError('');
+    setScanNotes([]);
+    setAppliedFields([]);
+  };
+
+  const startScanCapture = (mode: 'scan' | 'retake') => {
+    if (scanStatus === 'recognizing') return;
+
+    scanModeRef.current = mode;
+    setScanError('');
+    setScanNotes([]);
+    setScanStatus('capturing');
+
+    const input = fileInputRef.current;
+    if (!input) {
+      setScanStatus('idle');
+      return;
+    }
+
+    input.value = '';
+    input.click();
+
+    const onFocus = () => {
+      window.removeEventListener('focus', onFocus);
+      setTimeout(() => {
+        const hasFile = Boolean(input.files && input.files.length > 0);
+        if (!hasFile) setScanStatus('idle');
+      }, 200);
+    };
+    window.addEventListener('focus', onFocus);
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+
+    if (!file) {
+      setScanStatus('idle');
+      return;
+    }
+
+    setScanStatus('recognizing');
+    setScanError('');
+    setScanNotes([]);
+
+    try {
+      const scan = await scanReceiptImage(file);
+
+      const mode = scanModeRef.current;
+      const currentTitle = mode === 'retake' && appliedFields.includes('title') ? '' : title;
+      const currentTotalAmount =
+        mode === 'retake' && appliedFields.includes('totalAmount') ? '' : totalAmount;
+
+      const applied = applyScanToDraft({
+        currentTitle,
+        currentTotalAmount,
+        scan,
+      });
+
+      setScanNotes(scan.notes ?? []);
+
+      if (applied.appliedFields.length === 0) {
+        setAppliedFields([]);
+        setScanStatus('failed');
+        setScanError(
+          "Couldn't prefill the form from that photo. You can retake or continue with manual entry.",
+        );
+        return;
+      }
+
+      if (applied.appliedFields.includes('title')) setTitle(applied.nextTitle);
+      if (applied.appliedFields.includes('totalAmount')) setTotalAmount(applied.nextTotalAmount);
+      setAppliedFields(applied.appliedFields);
+      setScanStatus('prefilled');
+    } catch (err) {
+      setAppliedFields([]);
+      setScanStatus('failed');
+      setScanError(
+        err instanceof Error
+          ? err.message
+          : "Couldn't prefill the form from that photo. You can retake or continue with manual entry.",
+      );
+    }
+  };
+
+  const clearPrefill = () => {
+    setTitle('');
+    setTotalAmount('');
+    resetScanMeta();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,7 +155,7 @@ export function BillCreateForm() {
       } else {
         alert(res.error || 'Failed to create bill');
       }
-    } catch (error) {
+    } catch {
       alert('An error occurred');
     } finally {
       setLoading(false);
@@ -62,29 +165,95 @@ export function BillCreateForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Bill Details</CardTitle>
+          <div className="flex items-center gap-2">
+            {(scanStatus === 'prefilled' || scanStatus === 'failed') && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => startScanCapture('retake')}
+                disabled={scanDisabled}
+              >
+                <RotateCcw className="h-4 w-4 mr-1" /> Retake
+              </Button>
+            )}
+            {(scanStatus === 'prefilled' || scanStatus === 'failed') && (
+              <Button type="button" variant="outline" size="sm" onClick={clearPrefill}>
+                <XCircle className="h-4 w-4 mr-1" /> Clear
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => startScanCapture('scan')}
+              disabled={scanDisabled}
+            >
+              {scanStatus === 'recognizing' ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Scanning...
+                </>
+              ) : (
+                <>
+                  <Camera className="h-4 w-4 mr-1" /> Scan receipt
+                </>
+              )}
+            </Button>
+            <input
+              ref={fileInputRef}
+              data-testid="receipt-file-input"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleFileSelected}
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {scanStatus === 'failed' && (
+            <div className="text-sm text-muted-foreground">{scanError}</div>
+          )}
+          {scanNotes.length > 0 && (
+            <div className="text-xs text-muted-foreground">{scanNotes.join(' ')}</div>
+          )}
           <div className="space-y-2">
             <label className="text-sm font-medium">Title</label>
+            {appliedFields.includes('title') && (
+              <div className="text-xs text-muted-foreground">Suggested from scan</div>
+            )}
             <Input
               required
               placeholder="Dinner at Mama's"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (appliedFields.includes('title')) {
+                  setAppliedFields((prev) => prev.filter((field) => field !== 'title'));
+                }
+              }}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Total Amount (RM)</label>
+              {appliedFields.includes('totalAmount') && (
+                <div className="text-xs text-muted-foreground">Suggested from scan</div>
+              )}
               <Input
                 required
                 type="number"
                 step="0.01"
                 placeholder="100.00"
                 value={totalAmount}
-                onChange={(e) => setTotalAmount(e.target.value)}
+                onChange={(e) => {
+                  setTotalAmount(e.target.value);
+                  if (appliedFields.includes('totalAmount')) {
+                    setAppliedFields((prev) => prev.filter((field) => field !== 'totalAmount'));
+                  }
+                }}
               />
             </div>
             <div className="space-y-2">

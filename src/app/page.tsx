@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, CheckCircle2, Share2, Wallet } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -10,7 +11,7 @@ export default function Home() {
           Split Bills, <span className="text-primary">Without the Hassle.</span>
         </h1>
         <p className="text-xl text-muted-foreground">
-          Create a bill, share the link, and track who's paid. No apps to install, no accounts for
+          Create a bill, share the link, and track who&apos;s paid. No apps to install, no accounts for
           participants.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
@@ -53,7 +54,7 @@ function FeatureCard({
   title,
   description,
 }: {
-  icon: any;
+  icon: LucideIcon;
   title: string;
   description: string;
 }) {
